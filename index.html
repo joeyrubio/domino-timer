@@ -310,10 +310,15 @@
     z-index: 1;
     background: radial-gradient(ellipse at center, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.55) 100%);
     pointer-events: none;
+    transition: background 0.6s;
   }
 
   .vignette.no-media {
     background: radial-gradient(ellipse at center, var(--bg-mid) 0%, var(--bg-deep) 100%);
+  }
+
+  .vignette.light-vignette {
+    background: radial-gradient(ellipse at center, rgba(255,255,255,0.05) 0%, rgba(0,0,0,0.25) 100%);
   }
 
   .timer-content {
@@ -346,12 +351,24 @@
     line-height: 1;
     letter-spacing: 0.02em;
     transition: color 0.6s, text-shadow 0.6s;
+    color: #ffffff;
     text-shadow: 0 0 60px rgba(255,255,255,0.15), 0 4px 24px rgba(0,0,0,0.9);
   }
 
+  /* Light text on dark backgrounds (default) */
   .timer-digits.warning { color: var(--gold); text-shadow: 0 0 60px var(--gold-dim), 0 0 120px var(--gold-dim), 0 4px 24px rgba(0,0,0,0.9); }
   .timer-digits.urgent { color: var(--orange); text-shadow: 0 0 60px rgba(249,115,22,0.4), 0 0 120px rgba(249,115,22,0.3), 0 4px 24px rgba(0,0,0,0.9); }
   .timer-digits.finished { color: var(--red); text-shadow: 0 0 60px rgba(239,68,68,0.5), 0 0 120px rgba(239,68,68,0.4), 0 4px 24px rgba(0,0,0,0.9); animation: pulse 1s ease-in-out infinite; }
+
+  /* Dark text on light backgrounds */
+  .light-bg .timer-digits { color: #0a0a0f; text-shadow: 0 0 60px rgba(0,0,0,0.1), 0 4px 24px rgba(255,255,255,0.3); }
+  .light-bg .timer-digits.warning { color: #9a6e00; text-shadow: 0 0 40px rgba(154,110,0,0.3), 0 4px 24px rgba(255,255,255,0.3); }
+  .light-bg .timer-digits.urgent { color: #b84d00; text-shadow: 0 0 40px rgba(184,77,0,0.3), 0 4px 24px rgba(255,255,255,0.3); }
+  .light-bg .timer-digits.finished { color: #b91c1c; text-shadow: 0 0 40px rgba(185,28,28,0.4), 0 4px 24px rgba(255,255,255,0.3); animation: pulse 1s ease-in-out infinite; }
+  .light-bg .timer-label { color: rgba(0,0,0,0.6); text-shadow: 0 2px 16px rgba(255,255,255,0.5); }
+  .light-bg .status-text.times-up { color: #b91c1c; }
+  .light-bg .status-text.paused { color: #9a6e00; }
+  .light-bg .tap-hint { color: rgba(0,0,0,0.2); }
 
   .status-text {
     font-family: 'DM Sans', sans-serif;
@@ -476,6 +493,7 @@
 <!-- ═══════════ TIMER ═══════════ -->
 <div id="timer-screen">
   <div class="media-layer" id="media-layer"></div>
+  <canvas id="sample-canvas" style="display:none"></canvas>
   <div class="vignette" id="vignette"></div>
   <div class="timer-content" id="timer-click-area">
     <div class="timer-label" id="display-label"></div>
@@ -514,6 +532,80 @@ let controlsTimeout = null;
 let rotationTimeout = null;
 let mediaQueue = [];
 let mediaQueuePos = 0;
+let contrastInterval = null;
+let isLightBg = false;
+
+// ─── Contrast Detection ───
+const sampleCanvas = document.getElementById('sample-canvas');
+const sampleCtx = sampleCanvas.getContext('2d', { willReadFrequently: true });
+
+function sampleMediaLuminance() {
+  const layer = document.getElementById('media-layer');
+  const media = layer.querySelector('img, video');
+  if (!media) return;
+
+  // For video, check it has enough data
+  if (media.tagName === 'VIDEO' && media.readyState < 2) return;
+
+  const sw = media.tagName === 'VIDEO' ? media.videoWidth : media.naturalWidth;
+  const sh = media.tagName === 'VIDEO' ? media.videoHeight : media.naturalHeight;
+  if (!sw || !sh) return;
+
+  // Sample a small version for performance
+  const sampleSize = 64;
+  sampleCanvas.width = sampleSize;
+  sampleCanvas.height = sampleSize;
+
+  try {
+    sampleCtx.drawImage(media, 0, 0, sampleSize, sampleSize);
+  } catch (e) {
+    return; // CORS or tainted canvas
+  }
+
+  // Sample the center 60% where the timer text sits
+  const margin = Math.floor(sampleSize * 0.2);
+  const regionSize = sampleSize - margin * 2;
+  let data;
+  try {
+    data = sampleCtx.getImageData(margin, margin, regionSize, regionSize).data;
+  } catch (e) {
+    return;
+  }
+
+  // Compute average perceived luminance (ITU-R BT.709)
+  let totalLum = 0;
+  const pixelCount = data.length / 4;
+  for (let i = 0; i < data.length; i += 4) {
+    totalLum += (0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2]);
+  }
+  const avgLum = totalLum / pixelCount; // 0-255
+
+  // Threshold: above 140 is "light" background
+  const nowLight = avgLum > 140;
+
+  if (nowLight !== isLightBg) {
+    isLightBg = nowLight;
+    const timerScreen = document.getElementById('timer-screen');
+    const vignette = document.getElementById('vignette');
+    timerScreen.classList.toggle('light-bg', isLightBg);
+    vignette.classList.toggle('light-vignette', isLightBg);
+  }
+}
+
+function startContrastSampling() {
+  clearInterval(contrastInterval);
+  isLightBg = false;
+  document.getElementById('timer-screen').classList.remove('light-bg');
+  document.getElementById('vignette').classList.remove('light-vignette');
+  // Sample every 500ms — fast enough for video, cheap with 64x64 canvas
+  contrastInterval = setInterval(sampleMediaLuminance, 500);
+  // Also run once immediately after a short delay for first image load
+  setTimeout(sampleMediaLuminance, 200);
+}
+
+function stopContrastSampling() {
+  clearInterval(contrastInterval);
+}
 
 // ─── Preset chips ───
 const presetRow = document.getElementById('preset-row');
@@ -636,6 +728,7 @@ function launchTimer() {
   document.getElementById('timer-screen').classList.add('active');
 
   startMediaRotation();
+  startContrastSampling();
   updateTimerDisplay();
   clearInterval(timerInterval);
   timerInterval = setInterval(tick, 1000);
@@ -781,6 +874,7 @@ function goBack(e) {
   if (e) e.stopPropagation();
   clearInterval(timerInterval);
   clearTimeout(rotationTimeout);
+  stopContrastSampling();
   document.getElementById('timer-screen').classList.remove('active');
   document.getElementById('settings-screen').style.display = '';
 }
