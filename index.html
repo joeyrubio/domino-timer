@@ -503,6 +503,7 @@
   <div class="controls-bar" id="controls-bar">
     <button class="ctrl-btn" id="btn-pause" onclick="togglePause(event)">Pause</button>
     <button class="ctrl-btn" id="btn-reset" onclick="resetTimer(event)">Reset</button>
+    <button class="ctrl-btn" id="btn-fullscreen" onclick="toggleFullscreen(event)">⛶ Fullscreen</button>
     <button class="ctrl-btn" id="btn-back" onclick="goBack(event)">← Settings</button>
   </div>
   <div class="tap-hint" id="tap-hint">TAP FOR CONTROLS</div>
@@ -895,6 +896,25 @@ function hideControlsSoon() {
     document.getElementById('tap-hint').style.display = '';
   }, 4000);
 }
+
+// ─── Fullscreen ───
+function toggleFullscreen(e) {
+  if (e) e.stopPropagation();
+  const el = document.getElementById('timer-screen');
+  const btn = document.getElementById('btn-fullscreen');
+
+  if (!document.fullscreenElement) {
+    (el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen).call(el);
+  } else {
+    (document.exitFullscreen || document.webkitExitFullscreen || document.mozCancelFullScreen || document.msExitFullscreen).call(document);
+  }
+  hideControlsSoon();
+}
+
+document.addEventListener('fullscreenchange', () => {
+  const btn = document.getElementById('btn-fullscreen');
+  if (btn) btn.textContent = document.fullscreenElement ? '✕ Exit Fullscreen' : '⛶ Fullscreen';
+});
 </script>
 </body>
 </html>
