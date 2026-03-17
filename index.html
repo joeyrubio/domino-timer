@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Domino Timer — Event Display</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;700&family=JetBrains+Mono:wght@200;300;400&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --gold: #e8b931;
+    --gold-dim: rgba(232, 185, 49, 0.25);
+    --red: #ef4444;
+    --orange: #f97316;
+    --surface: rgba(255,255,255,0.04);
+    --border: rgba(255,255,255,0.08);
+    --border-light: rgba(255,255,255,0.12);
+    --text-primary: #ffffff;
+    --text-muted: rgba(255,255,255,0.45);
+    --text-dim: rgba(255,255,255,0.3);
+    --bg-deep: #06060b;
+    --bg-mid: #0d0d17;
+  }
+
+  body {
+    font-family: 'DM Sans', system-ui, sans-serif;
+    background: var(--bg-deep);
+    color: var(--text-primary);
+    overflow: hidden;
+    height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ─── SETTINGS SCREEN ─── */
+  #settings-screen {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(160deg, var(--bg-deep) 0%, var(--bg-mid) 40%, var(--bg-deep) 100%);
+    padding: 20px;
+  }
+
+  .settings-card {
+    width: 100%;
+    max-width: 500px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 40px 32px;
+    backdrop-filter: blur(24px);
+  }
+
+  .settings-header {
+    text-align: center;
+    margin-bottom: 36px;
+  }
+
+  .settings-header .eyebrow {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 5px;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 10px;
+  }
+
+  .settings-header h1 {
+    font-size: 30px;
+    font-weight: 300;
+    letter-spacing: 1px;
+    color: var(--text-primary);
+  }
+
+  .field-label {
+    display: block;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+
+  .field-group { margin-bottom: 26px; }
+
+  .text-input {
+    width: 100%;
+    padding: 12px 14px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text-primary);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .text-input:focus { border-color: rgba(255,255,255,0.2); }
+
+  .text-input::placeholder { color: var(--text-dim); }
+
+  .small-input {
+    width: 68px;
+    text-align: center;
+    padding: 10px 8px;
+  }
+
+  /* Upload area */
+  .upload-btn {
+    width: 100%;
+    padding: 14px 16px;
+    background: rgba(255,255,255,0.05);
+    border: 1px dashed rgba(255,255,255,0.14);
+    border-radius: 12px;
+    color: rgba(255,255,255,0.45);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .upload-btn:hover { border-color: rgba(255,255,255,0.25); color: rgba(255,255,255,0.6); }
+
+  .upload-btn.has-files {
+    background: rgba(80,200,120,0.08);
+    border-color: rgba(80,200,120,0.3);
+    color: #5fc878;
+  }
+
+  .upload-hint {
+    font-size: 11px;
+    color: var(--text-dim);
+    text-align: center;
+    margin-top: 6px;
+  }
+
+  /* Thumbnails */
+  .thumb-strip {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  .thumb {
+    position: relative;
+    width: 68px;
+    height: 68px;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid var(--border-light);
+    flex-shrink: 0;
+  }
+
+  .thumb img, .thumb video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .thumb-remove {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 20px;
+    height: 20px;
+    background: rgba(0,0,0,0.75);
+    color: #ff6b6b;
+    border: none;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-bottom-left-radius: 6px;
+    line-height: 1;
+    padding: 0;
+  }
+
+  .thumb-badge {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(0,0,0,0.75);
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    text-align: center;
+    color: rgba(255,255,255,0.55);
+    padding: 2px 0;
+  }
+
+  /* Duration presets */
+  .preset-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .preset-chip {
+    padding: 8px 15px;
+    border-radius: 8px;
+    border: none;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    background: rgba(255,255,255,0.06);
+    color: rgba(255,255,255,0.55);
+  }
+
+  .preset-chip:hover { background: rgba(255,255,255,0.1); }
+
+  .preset-chip.active {
+    background: var(--gold);
+    color: var(--bg-deep);
+  }
+
+  .custom-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .custom-label {
+    font-size: 12px;
+    color: var(--text-dim);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: color 0.15s;
+  }
+
+  .custom-label.active { color: var(--gold); font-weight: 700; }
+
+  .separator { color: var(--text-dim); font-weight: 700; }
+
+  .unit-hint { font-size: 11px; color: var(--text-dim); }
+
+  /* Rotation interval */
+  .interval-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .interval-label { color: var(--text-dim); font-size: 13px; font-weight: 500; }
+
+  /* Launch button */
+  .launch-btn {
+    width: 100%;
+    padding: 16px;
+    background: linear-gradient(135deg, var(--gold) 0%, #d4a520 100%);
+    border: none;
+    border-radius: 12px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: var(--bg-deep);
+    cursor: pointer;
+    box-shadow: 0 4px 28px rgba(232, 185, 49, 0.25);
+    transition: transform 0.1s, box-shadow 0.2s;
+    margin-top: 6px;
+  }
+
+  .launch-btn:hover { box-shadow: 0 6px 36px rgba(232, 185, 49, 0.35); }
+  .launch-btn:active { transform: scale(0.98); }
+
+  /* ─── TIMER SCREEN ─── */
+  #timer-screen {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: #000;
+    overflow: hidden;
+  }
+
+  #timer-screen.active { display: block; }
+
+  .media-layer {
+    position: absolute;
+    inset: 0;
+    transition: opacity 0.9s ease-in-out;
+  }
+
+  .media-layer img, .media-layer video {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  .vignette {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background: radial-gradient(ellipse at center, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.55) 100%);
+    pointer-events: none;
+  }
+
+  .vignette.no-media {
+    background: radial-gradient(ellipse at center, var(--bg-mid) 0%, var(--bg-deep) 100%);
+  }
+
+  .timer-content {
+    position: relative;
+    z-index: 2;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+  }
+
+  .timer-label {
+    font-family: 'DM Sans', sans-serif;
+    font-size: clamp(13px, 2.5vw, 22px);
+    font-weight: 700;
+    letter-spacing: 7px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.65);
+    text-shadow: 0 2px 16px rgba(0,0,0,0.9);
+    margin-bottom: 1vh;
+  }
+
+  .timer-digits {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: clamp(72px, 18vw, 280px);
+    font-weight: 200;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    letter-spacing: 0.02em;
+    transition: color 0.6s, text-shadow 0.6s;
+    text-shadow: 0 0 60px rgba(255,255,255,0.15), 0 4px 24px rgba(0,0,0,0.9);
+  }
+
+  .timer-digits.warning { color: var(--gold); text-shadow: 0 0 60px var(--gold-dim), 0 0 120px var(--gold-dim), 0 4px 24px rgba(0,0,0,0.9); }
+  .timer-digits.urgent { color: var(--orange); text-shadow: 0 0 60px rgba(249,115,22,0.4), 0 0 120px rgba(249,115,22,0.3), 0 4px 24px rgba(0,0,0,0.9); }
+  .timer-digits.finished { color: var(--red); text-shadow: 0 0 60px rgba(239,68,68,0.5), 0 0 120px rgba(239,68,68,0.4), 0 4px 24px rgba(0,0,0,0.9); animation: pulse 1s ease-in-out infinite; }
+
+  .status-text {
+    font-family: 'DM Sans', sans-serif;
+    font-size: clamp(16px, 2.5vw, 32px);
+    font-weight: 700;
+    letter-spacing: 8px;
+    text-transform: uppercase;
+    margin-top: 2vh;
+    text-shadow: 0 2px 20px rgba(0,0,0,0.8);
+  }
+
+  .status-text.times-up { color: var(--red); animation: pulse 1s ease-in-out infinite; }
+  .status-text.paused { color: var(--gold); animation: pulse 1.5s ease-in-out infinite; }
+
+  /* Controls */
+  .controls-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 24px;
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    background: linear-gradient(transparent, rgba(0,0,0,0.75));
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  .controls-bar.visible { opacity: 1; pointer-events: auto; }
+
+  .ctrl-btn {
+    padding: 10px 22px;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.14);
+    background: rgba(255,255,255,0.07);
+    color: rgba(255,255,255,0.8);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    backdrop-filter: blur(8px);
+    transition: background 0.15s;
+  }
+
+  .ctrl-btn:hover { background: rgba(255,255,255,0.12); }
+  .ctrl-btn.accent { background: var(--gold-dim); color: var(--gold); border-color: rgba(232,185,49,0.3); }
+
+  .tap-hint {
+    position: absolute;
+    bottom: 16px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: 11px;
+    color: rgba(255,255,255,0.18);
+    letter-spacing: 3px;
+    z-index: 5;
+    pointer-events: none;
+  }
+
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+</style>
+</head>
+<body>
+
+<!-- ═══════════ SETTINGS ═══════════ -->
+<div id="settings-screen">
+  <div class="settings-card">
+    <div class="settings-header">
+      <div class="eyebrow">Event Display</div>
+      <h1>Domino Timer</h1>
+    </div>
+
+    <!-- Sponsor media -->
+    <div class="field-group">
+      <label class="field-label">Sponsor Backgrounds</label>
+      <input type="file" id="file-input" accept="image/*,video/*" multiple style="display:none">
+      <button class="upload-btn" id="upload-btn" onclick="document.getElementById('file-input').click()">
+        ＋&nbsp; Upload images or videos
+      </button>
+      <div class="upload-hint">Select multiple files — they rotate randomly behind the timer</div>
+      <div class="thumb-strip" id="thumb-strip"></div>
+    </div>
+
+    <!-- Rotation interval (hidden until 2+ files) -->
+    <div class="field-group" id="interval-group" style="display:none">
+      <label class="field-label">Rotation Interval (seconds)</label>
+      <div class="interval-row">
+        <input type="number" class="text-input small-input" id="rotate-min" value="5" min="3" max="300">
+        <span class="interval-label">to</span>
+        <input type="number" class="text-input small-input" id="rotate-max" value="15" min="3" max="300">
+        <span class="unit-hint">sec (random)</span>
+      </div>
+    </div>
+
+    <!-- Display label -->
+    <div class="field-group">
+      <label class="field-label">Display Label</label>
+      <input type="text" class="text-input" id="timer-label-input" value="Round Timer" placeholder="e.g. Round Timer, Game 1, Halftime" maxlength="40">
+    </div>
+
+    <!-- Duration -->
+    <div class="field-group">
+      <label class="field-label">Duration</label>
+      <div class="preset-row" id="preset-row"></div>
+      <div class="custom-row">
+        <span class="custom-label" id="custom-toggle" onclick="activateCustom()">Custom:</span>
+        <input type="number" class="text-input small-input" id="custom-min" placeholder="00" min="0" max="999" onfocus="activateCustom()">
+        <span class="separator">:</span>
+        <input type="number" class="text-input small-input" id="custom-sec" placeholder="00" min="0" max="59" onfocus="activateCustom()">
+        <span class="unit-hint">min : sec</span>
+      </div>
+    </div>
+
+    <button class="launch-btn" onclick="launchTimer()">Launch Display →</button>
+  </div>
+</div>
+
+<!-- ═══════════ TIMER ═══════════ -->
+<div id="timer-screen">
+  <div class="media-layer" id="media-layer"></div>
+  <div class="vignette" id="vignette"></div>
+  <div class="timer-content" id="timer-click-area">
+    <div class="timer-label" id="display-label"></div>
+    <div class="timer-digits" id="timer-digits">00:00</div>
+    <div class="status-text" id="status-text" style="display:none"></div>
+  </div>
+  <div class="controls-bar" id="controls-bar">
+    <button class="ctrl-btn" id="btn-pause" onclick="togglePause(event)">Pause</button>
+    <button class="ctrl-btn" id="btn-reset" onclick="resetTimer(event)">Reset</button>
+    <button class="ctrl-btn" id="btn-back" onclick="goBack(event)">← Settings</button>
+  </div>
+  <div class="tap-hint" id="tap-hint">TAP FOR CONTROLS</div>
+</div>
+
+<script>
+// ─── State ───
+let mediaItems = [];
+let selectedPreset = 2;
+let useCustom = false;
+const presets = [
+  { label: '5 min', seconds: 300 },
+  { label: '10 min', seconds: 600 },
+  { label: '15 min', seconds: 900 },
+  { label: '20 min', seconds: 1200 },
+  { label: '30 min', seconds: 1800 },
+  { label: '45 min', seconds: 2700 },
+  { label: '60 min', seconds: 3600 },
+];
+
+let timerTotal = 0;
+let timerRemaining = 0;
+let timerRunning = false;
+let timerFinished = false;
+let timerInterval = null;
+let controlsTimeout = null;
+let rotationTimeout = null;
+let mediaQueue = [];
+let mediaQueuePos = 0;
+
+// ─── Preset chips ───
+const presetRow = document.getElementById('preset-row');
+presets.forEach((p, i) => {
+  const btn = document.createElement('button');
+  btn.className = 'preset-chip' + (i === selectedPreset ? ' active' : '');
+  btn.textContent = p.label;
+  btn.onclick = () => {
+    selectedPreset = i;
+    useCustom = false;
+    updatePresetUI();
+  };
+  presetRow.appendChild(btn);
+});
+
+function updatePresetUI() {
+  document.querySelectorAll('.preset-chip').forEach((el, i) => {
+    el.classList.toggle('active', !useCustom && i === selectedPreset);
+  });
+  document.getElementById('custom-toggle').classList.toggle('active', useCustom);
+}
+
+function activateCustom() {
+  useCustom = true;
+  updatePresetUI();
+}
+
+// ─── File handling ───
+document.getElementById('file-input').addEventListener('change', (e) => {
+  const files = Array.from(e.target.files || []);
+  files.forEach(file => {
+    const url = URL.createObjectURL(file);
+    const type = file.type.startsWith('video/') ? 'video' : 'image';
+    mediaItems.push({ id: Math.random().toString(36).slice(2), url, type, name: file.name });
+  });
+  e.target.value = '';
+  renderThumbs();
+});
+
+function removeMedia(id) {
+  const idx = mediaItems.findIndex(m => m.id === id);
+  if (idx > -1) {
+    URL.revokeObjectURL(mediaItems[idx].url);
+    mediaItems.splice(idx, 1);
+  }
+  renderThumbs();
+}
+
+function renderThumbs() {
+  const strip = document.getElementById('thumb-strip');
+  const btn = document.getElementById('upload-btn');
+  const intervalGroup = document.getElementById('interval-group');
+
+  strip.innerHTML = '';
+  mediaItems.forEach(item => {
+    const div = document.createElement('div');
+    div.className = 'thumb';
+    if (item.type === 'image') {
+      div.innerHTML = `<img src="${item.url}" alt="">`;
+    } else {
+      div.innerHTML = `<video src="${item.url}" muted></video>`;
+    }
+    div.innerHTML += `<button class="thumb-remove" onclick="removeMedia('${item.id}')">×</button>`;
+    div.innerHTML += `<div class="thumb-badge">${item.type === 'video' ? 'VID' : 'IMG'}</div>`;
+    strip.appendChild(div);
+  });
+
+  if (mediaItems.length > 0) {
+    btn.className = 'upload-btn has-files';
+    btn.innerHTML = `＋&nbsp; Add more (${mediaItems.length} file${mediaItems.length > 1 ? 's' : ''} loaded)`;
+  } else {
+    btn.className = 'upload-btn';
+    btn.innerHTML = '＋&nbsp; Upload images or videos';
+  }
+
+  intervalGroup.style.display = mediaItems.length > 1 ? '' : 'none';
+}
+
+// ─── Shuffle helper ───
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function randBetween(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+// ─── Launch ───
+function launchTimer() {
+  let seconds;
+  if (useCustom) {
+    const cm = parseInt(document.getElementById('custom-min').value) || 0;
+    const cs = parseInt(document.getElementById('custom-sec').value) || 0;
+    seconds = cm * 60 + cs;
+  } else {
+    seconds = presets[selectedPreset].seconds;
+  }
+  if (seconds < 1) seconds = 600;
+
+  timerTotal = seconds;
+  timerRemaining = seconds;
+  timerRunning = true;
+  timerFinished = false;
+
+  const label = document.getElementById('timer-label-input').value.trim();
+  document.getElementById('display-label').textContent = label;
+  document.getElementById('status-text').style.display = 'none';
+  document.getElementById('btn-pause').textContent = 'Pause';
+  document.getElementById('btn-pause').classList.remove('accent');
+
+  const vignette = document.getElementById('vignette');
+  vignette.classList.toggle('no-media', mediaItems.length === 0);
+
+  document.getElementById('settings-screen').style.display = 'none';
+  document.getElementById('timer-screen').classList.add('active');
+
+  startMediaRotation();
+  updateTimerDisplay();
+  clearInterval(timerInterval);
+  timerInterval = setInterval(tick, 1000);
+  hideControlsSoon();
+}
+
+// ─── Media rotation ───
+function startMediaRotation() {
+  const layer = document.getElementById('media-layer');
+  clearTimeout(rotationTimeout);
+  layer.innerHTML = '';
+  layer.style.opacity = '1';
+
+  if (mediaItems.length === 0) return;
+
+  mediaQueue = shuffle(mediaItems);
+  mediaQueuePos = 0;
+  showCurrentMedia();
+
+  if (mediaItems.length > 1) scheduleNextMedia();
+}
+
+function showCurrentMedia() {
+  const layer = document.getElementById('media-layer');
+  const item = mediaQueue[mediaQueuePos];
+  if (!item) return;
+
+  layer.innerHTML = '';
+  if (item.type === 'video') {
+    const vid = document.createElement('video');
+    vid.src = item.url;
+    vid.autoplay = true;
+    vid.loop = true;
+    vid.muted = true;
+    vid.playsInline = true;
+    vid.setAttribute('playsinline', '');
+    layer.appendChild(vid);
+  } else {
+    const img = document.createElement('img');
+    img.src = item.url;
+    layer.appendChild(img);
+  }
+}
+
+function scheduleNextMedia() {
+  if (mediaItems.length <= 1) return;
+  const minSec = Math.max(3, parseInt(document.getElementById('rotate-min').value) || 5);
+  const maxSec = Math.max(minSec, parseInt(document.getElementById('rotate-max').value) || 15);
+  const delay = randBetween(minSec, maxSec) * 1000;
+
+  rotationTimeout = setTimeout(() => {
+    const layer = document.getElementById('media-layer');
+    layer.style.opacity = '0';
+
+    setTimeout(() => {
+      mediaQueuePos++;
+      if (mediaQueuePos >= mediaQueue.length) {
+        mediaQueue = shuffle(mediaItems);
+        mediaQueuePos = 0;
+      }
+      showCurrentMedia();
+      layer.style.opacity = '1';
+      scheduleNextMedia();
+    }, 900);
+  }, delay);
+}
+
+// ─── Timer logic ───
+function formatTime(total) {
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = total % 60;
+  if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
+function tick() {
+  if (!timerRunning || timerFinished) return;
+  timerRemaining--;
+  if (timerRemaining <= 0) {
+    timerRemaining = 0;
+    timerRunning = false;
+    timerFinished = true;
+    const st = document.getElementById('status-text');
+    st.textContent = "TIME'S UP";
+    st.className = 'status-text times-up';
+    st.style.display = '';
+    clearInterval(timerInterval);
+  }
+  updateTimerDisplay();
+}
+
+function updateTimerDisplay() {
+  const el = document.getElementById('timer-digits');
+  el.textContent = formatTime(timerRemaining);
+
+  el.classList.remove('warning', 'urgent', 'finished');
+  const pct = timerRemaining / timerTotal;
+  if (timerFinished) el.classList.add('finished');
+  else if (pct <= 0.1) el.classList.add('urgent');
+  else if (pct <= 0.25) el.classList.add('warning');
+}
+
+function togglePause(e) {
+  if (e) e.stopPropagation();
+  if (timerFinished) return;
+  timerRunning = !timerRunning;
+  const btn = document.getElementById('btn-pause');
+  const st = document.getElementById('status-text');
+
+  if (timerRunning) {
+    btn.textContent = 'Pause';
+    btn.classList.remove('accent');
+    st.style.display = 'none';
+    clearInterval(timerInterval);
+    timerInterval = setInterval(tick, 1000);
+  } else {
+    btn.textContent = 'Resume';
+    btn.classList.add('accent');
+    st.textContent = 'PAUSED';
+    st.className = 'status-text paused';
+    st.style.display = '';
+    clearInterval(timerInterval);
+  }
+  hideControlsSoon();
+}
+
+function resetTimer(e) {
+  if (e) e.stopPropagation();
+  timerRemaining = timerTotal;
+  timerRunning = true;
+  timerFinished = false;
+  document.getElementById('status-text').style.display = 'none';
+  document.getElementById('btn-pause').textContent = 'Pause';
+  document.getElementById('btn-pause').classList.remove('accent');
+  clearInterval(timerInterval);
+  timerInterval = setInterval(tick, 1000);
+  updateTimerDisplay();
+  hideControlsSoon();
+}
+
+function goBack(e) {
+  if (e) e.stopPropagation();
+  clearInterval(timerInterval);
+  clearTimeout(rotationTimeout);
+  document.getElementById('timer-screen').classList.remove('active');
+  document.getElementById('settings-screen').style.display = '';
+}
+
+// ─── Controls show/hide ───
+document.getElementById('timer-click-area').addEventListener('click', showControls);
+
+function showControls() {
+  document.getElementById('controls-bar').classList.add('visible');
+  document.getElementById('tap-hint').style.display = 'none';
+  hideControlsSoon();
+}
+
+function hideControlsSoon() {
+  clearTimeout(controlsTimeout);
+  controlsTimeout = setTimeout(() => {
+    document.getElementById('controls-bar').classList.remove('visible');
+    document.getElementById('tap-hint').style.display = '';
+  }, 4000);
+}
+</script>
+</body>
+</html>
