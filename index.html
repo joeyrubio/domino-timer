@@ -3,25 +3,27 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Domino Timer — Event Display</title>
+<title>Novem Timer — Event Display</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;700&family=JetBrains+Mono:wght@200;300;400&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
-    --gold: #e8b931;
-    --gold-dim: rgba(232, 185, 49, 0.25);
+    --white: #ffffff;
+    --white-dim: rgba(255,255,255,0.25);
     --red: #ef4444;
     --orange: #f97316;
-    --surface: rgba(255,255,255,0.04);
-    --border: rgba(255,255,255,0.08);
-    --border-light: rgba(255,255,255,0.12);
+    --surface: rgba(255,255,255,0.06);
+    --border: rgba(255,255,255,0.10);
+    --border-light: rgba(255,255,255,0.15);
     --text-primary: #ffffff;
-    --text-muted: rgba(255,255,255,0.45);
-    --text-dim: rgba(255,255,255,0.3);
-    --bg-deep: #06060b;
-    --bg-mid: #0d0d17;
+    --text-muted: rgba(255,255,255,0.50);
+    --text-dim: rgba(255,255,255,0.30);
+    --bg-deep: #000000;
+    --bg-mid: #0a0a0a;
+    --accent: #ffffff;
+    --accent-dim: rgba(255,255,255,0.15);
   }
 
   body {
@@ -39,38 +41,61 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(160deg, var(--bg-deep) 0%, var(--bg-mid) 40%, var(--bg-deep) 100%);
+    background: var(--bg-deep);
     padding: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Subtle noise texture overlay */
+  #settings-screen::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0.025;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-size: 256px;
+    pointer-events: none;
   }
 
   .settings-card {
     width: 100%;
-    max-width: 500px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    padding: 40px 32px;
+    max-width: 480px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px;
+    padding: 44px 36px 36px;
     backdrop-filter: blur(24px);
+    position: relative;
+    z-index: 1;
   }
 
   .settings-header {
     text-align: center;
-    margin-bottom: 36px;
+    margin-bottom: 40px;
+  }
+
+  /* ─── Novem Domino Icon (SVG inline) ─── */
+  .novem-domino {
+    display: inline-block;
+    margin-bottom: 20px;
+    opacity: 0.9;
   }
 
   .settings-header .eyebrow {
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 700;
-    letter-spacing: 5px;
+    letter-spacing: 6px;
     text-transform: uppercase;
-    color: var(--gold);
+    color: rgba(255,255,255,0.40);
     margin-bottom: 10px;
   }
 
   .settings-header h1 {
-    font-size: 30px;
+    font-size: 28px;
     font-weight: 300;
-    letter-spacing: 1px;
+    letter-spacing: 8px;
+    text-transform: uppercase;
     color: var(--text-primary);
   }
 
@@ -91,7 +116,7 @@
     padding: 12px 14px;
     background: rgba(255,255,255,0.05);
     border: 1px solid var(--border);
-    border-radius: 10px;
+    border-radius: 8px;
     color: var(--text-primary);
     font-family: 'DM Sans', sans-serif;
     font-size: 14px;
@@ -99,7 +124,7 @@
     transition: border-color 0.2s;
   }
 
-  .text-input:focus { border-color: rgba(255,255,255,0.2); }
+  .text-input:focus { border-color: rgba(255,255,255,0.30); }
 
   .text-input::placeholder { color: var(--text-dim); }
 
@@ -113,22 +138,23 @@
   .upload-btn {
     width: 100%;
     padding: 14px 16px;
-    background: rgba(255,255,255,0.05);
+    background: rgba(255,255,255,0.04);
     border: 1px dashed rgba(255,255,255,0.14);
-    border-radius: 12px;
-    color: rgba(255,255,255,0.45);
+    border-radius: 10px;
+    color: rgba(255,255,255,0.40);
     font-family: 'DM Sans', sans-serif;
     font-size: 14px;
     cursor: pointer;
     transition: all 0.2s;
   }
 
-  .upload-btn:hover { border-color: rgba(255,255,255,0.25); color: rgba(255,255,255,0.6); }
+  .upload-btn:hover { border-color: rgba(255,255,255,0.30); color: rgba(255,255,255,0.6); }
 
   .upload-btn.has-files {
-    background: rgba(80,200,120,0.08);
-    border-color: rgba(80,200,120,0.3);
-    color: #5fc878;
+    background: rgba(255,255,255,0.06);
+    border-color: rgba(255,255,255,0.25);
+    border-style: solid;
+    color: rgba(255,255,255,0.75);
   }
 
   .upload-hint {
@@ -151,7 +177,7 @@
     position: relative;
     width: 68px;
     height: 68px;
-    border-radius: 10px;
+    border-radius: 8px;
     overflow: hidden;
     border: 1px solid var(--border-light);
     flex-shrink: 0;
@@ -209,22 +235,23 @@
 
   .preset-chip {
     padding: 8px 15px;
-    border-radius: 8px;
-    border: none;
+    border-radius: 6px;
+    border: 1px solid transparent;
     font-family: 'DM Sans', sans-serif;
     font-size: 13px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.15s;
     background: rgba(255,255,255,0.06);
-    color: rgba(255,255,255,0.55);
+    color: rgba(255,255,255,0.50);
   }
 
-  .preset-chip:hover { background: rgba(255,255,255,0.1); }
+  .preset-chip:hover { background: rgba(255,255,255,0.10); color: rgba(255,255,255,0.70); }
 
   .preset-chip.active {
-    background: var(--gold);
-    color: var(--bg-deep);
+    background: #ffffff;
+    color: #000000;
+    border-color: #ffffff;
   }
 
   .custom-row {
@@ -241,7 +268,7 @@
     transition: color 0.15s;
   }
 
-  .custom-label.active { color: var(--gold); font-weight: 700; }
+  .custom-label.active { color: #ffffff; font-weight: 700; }
 
   .separator { color: var(--text-dim); font-weight: 700; }
 
@@ -260,22 +287,22 @@
   .launch-btn {
     width: 100%;
     padding: 16px;
-    background: linear-gradient(135deg, var(--gold) 0%, #d4a520 100%);
+    background: #ffffff;
     border: none;
-    border-radius: 12px;
+    border-radius: 10px;
     font-family: 'DM Sans', sans-serif;
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 700;
-    letter-spacing: 2.5px;
+    letter-spacing: 3px;
     text-transform: uppercase;
-    color: var(--bg-deep);
+    color: #000000;
     cursor: pointer;
-    box-shadow: 0 4px 28px rgba(232, 185, 49, 0.25);
-    transition: transform 0.1s, box-shadow 0.2s;
-    margin-top: 6px;
+    box-shadow: 0 4px 32px rgba(255, 255, 255, 0.08);
+    transition: transform 0.1s, box-shadow 0.2s, background 0.15s;
+    margin-top: 8px;
   }
 
-  .launch-btn:hover { box-shadow: 0 6px 36px rgba(232, 185, 49, 0.35); }
+  .launch-btn:hover { box-shadow: 0 6px 40px rgba(255, 255, 255, 0.14); background: #f0f0f0; }
   .launch-btn:active { transform: scale(0.98); }
 
   /* ─── TIMER SCREEN ─── */
@@ -355,19 +382,19 @@
     text-shadow: 0 0 60px rgba(255,255,255,0.15), 0 4px 24px rgba(0,0,0,0.9);
   }
 
-  /* Light text on dark backgrounds (default) */
-  .timer-digits.warning { color: var(--gold); text-shadow: 0 0 60px var(--gold-dim), 0 0 120px var(--gold-dim), 0 4px 24px rgba(0,0,0,0.9); }
+  /* Timer color states */
+  .timer-digits.warning { color: #ffffff; text-shadow: 0 0 60px rgba(255,255,255,0.35), 0 0 120px rgba(255,255,255,0.2), 0 4px 24px rgba(0,0,0,0.9); }
   .timer-digits.urgent { color: var(--orange); text-shadow: 0 0 60px rgba(249,115,22,0.4), 0 0 120px rgba(249,115,22,0.3), 0 4px 24px rgba(0,0,0,0.9); }
   .timer-digits.finished { color: var(--red); text-shadow: 0 0 60px rgba(239,68,68,0.5), 0 0 120px rgba(239,68,68,0.4), 0 4px 24px rgba(0,0,0,0.9); animation: pulse 1s ease-in-out infinite; }
 
   /* Dark text on light backgrounds */
   .light-bg .timer-digits { color: #0a0a0f; text-shadow: 0 0 60px rgba(0,0,0,0.1), 0 4px 24px rgba(255,255,255,0.3); }
-  .light-bg .timer-digits.warning { color: #9a6e00; text-shadow: 0 0 40px rgba(154,110,0,0.3), 0 4px 24px rgba(255,255,255,0.3); }
+  .light-bg .timer-digits.warning { color: #333333; text-shadow: 0 0 40px rgba(0,0,0,0.2), 0 4px 24px rgba(255,255,255,0.3); }
   .light-bg .timer-digits.urgent { color: #b84d00; text-shadow: 0 0 40px rgba(184,77,0,0.3), 0 4px 24px rgba(255,255,255,0.3); }
   .light-bg .timer-digits.finished { color: #b91c1c; text-shadow: 0 0 40px rgba(185,28,28,0.4), 0 4px 24px rgba(255,255,255,0.3); animation: pulse 1s ease-in-out infinite; }
   .light-bg .timer-label { color: rgba(0,0,0,0.6); text-shadow: 0 2px 16px rgba(255,255,255,0.5); }
   .light-bg .status-text.times-up { color: #b91c1c; }
-  .light-bg .status-text.paused { color: #9a6e00; }
+  .light-bg .status-text.paused { color: #333333; }
   .light-bg .tap-hint { color: rgba(0,0,0,0.2); }
 
   .status-text {
@@ -381,7 +408,7 @@
   }
 
   .status-text.times-up { color: var(--red); animation: pulse 1s ease-in-out infinite; }
-  .status-text.paused { color: var(--gold); animation: pulse 1.5s ease-in-out infinite; }
+  .status-text.paused { color: rgba(255,255,255,0.7); animation: pulse 1.5s ease-in-out infinite; }
 
   /* Controls */
   .controls-bar {
@@ -404,7 +431,7 @@
 
   .ctrl-btn {
     padding: 10px 22px;
-    border-radius: 8px;
+    border-radius: 6px;
     border: 1px solid rgba(255,255,255,0.14);
     background: rgba(255,255,255,0.07);
     color: rgba(255,255,255,0.8);
@@ -417,7 +444,7 @@
   }
 
   .ctrl-btn:hover { background: rgba(255,255,255,0.12); }
-  .ctrl-btn.accent { background: var(--gold-dim); color: var(--gold); border-color: rgba(232,185,49,0.3); }
+  .ctrl-btn.accent { background: rgba(255,255,255,0.15); color: #ffffff; border-color: rgba(255,255,255,0.3); }
 
   .tap-hint {
     position: absolute;
@@ -433,6 +460,15 @@
   }
 
   @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+
+  /* ─── Novem Logo in Footer ─── */
+  .settings-footer {
+    text-align: center;
+    margin-top: 28px;
+    opacity: 0.25;
+    transition: opacity 0.2s;
+  }
+  .settings-footer:hover { opacity: 0.45; }
 </style>
 </head>
 <body>
@@ -441,8 +477,25 @@
 <div id="settings-screen">
   <div class="settings-card">
     <div class="settings-header">
+      <!-- Novem Domino Icon — 9:1 (6 top, 1 bottom, horizontal divider) -->
+      <div class="novem-domino">
+        <svg width="48" height="96" viewBox="0 0 48 96" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="0.5" y="0.5" width="47" height="95" rx="5.5" stroke="white" stroke-opacity="0.25"/>
+          <!-- Divider line -->
+          <line x1="8" y1="48" x2="40" y2="48" stroke="white" stroke-opacity="0.30" stroke-width="1"/>
+          <!-- Top half: 6 dots (3 cols x 2 rows) -->
+          <circle cx="13" cy="17" r="3.5" fill="white"/>
+          <circle cx="24" cy="17" r="3.5" fill="white"/>
+          <circle cx="35" cy="17" r="3.5" fill="white"/>
+          <circle cx="13" cy="35" r="3.5" fill="white"/>
+          <circle cx="24" cy="35" r="3.5" fill="white"/>
+          <circle cx="35" cy="35" r="3.5" fill="white"/>
+          <!-- Bottom half: 1 dot (center) -->
+          <circle cx="24" cy="72" r="3.5" fill="white"/>
+        </svg>
+      </div>
       <div class="eyebrow">Event Display</div>
-      <h1>Domino Timer</h1>
+      <h1>Novem Timer</h1>
     </div>
 
     <!-- Sponsor media -->
@@ -487,6 +540,24 @@
     </div>
 
     <button class="launch-btn" onclick="launchTimer()">Launch Display →</button>
+
+    <!-- Novem wordmark footer -->
+    <div class="settings-footer">
+      <svg width="100" height="20" viewBox="0 0 500 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Domino icon small -->
+        <rect x="1" y="1" width="48" height="98" rx="6" stroke="white" stroke-width="2"/>
+        <line x1="8" y1="50" x2="42" y2="50" stroke="white" stroke-width="1.5"/>
+        <circle cx="14" cy="18" r="3.5" fill="white"/>
+        <circle cx="25" cy="18" r="3.5" fill="white"/>
+        <circle cx="36" cy="18" r="3.5" fill="white"/>
+        <circle cx="14" cy="36" r="3.5" fill="white"/>
+        <circle cx="25" cy="36" r="3.5" fill="white"/>
+        <circle cx="36" cy="36" r="3.5" fill="white"/>
+        <circle cx="25" cy="75" r="3.5" fill="white"/>
+        <!-- NOVEM wordmark -->
+        <text x="75" y="72" font-family="DM Sans, sans-serif" font-weight="500" font-size="68" letter-spacing="8" fill="white">NOVEM</text>
+      </svg>
+    </div>
   </div>
 </div>
 
@@ -516,9 +587,7 @@ let selectedPreset = 2;
 let useCustom = false;
 const presets = [
   { label: '5 min', seconds: 300 },
-  { label: '10 min', seconds: 600 },
   { label: '15 min', seconds: 900 },
-  { label: '20 min', seconds: 1200 },
   { label: '30 min', seconds: 1800 },
   { label: '45 min', seconds: 2700 },
   { label: '60 min', seconds: 3600 },
@@ -545,14 +614,12 @@ function sampleMediaLuminance() {
   const media = layer.querySelector('img, video');
   if (!media) return;
 
-  // For video, check it has enough data
   if (media.tagName === 'VIDEO' && media.readyState < 2) return;
 
   const sw = media.tagName === 'VIDEO' ? media.videoWidth : media.naturalWidth;
   const sh = media.tagName === 'VIDEO' ? media.videoHeight : media.naturalHeight;
   if (!sw || !sh) return;
 
-  // Sample a small version for performance
   const sampleSize = 64;
   sampleCanvas.width = sampleSize;
   sampleCanvas.height = sampleSize;
@@ -560,10 +627,9 @@ function sampleMediaLuminance() {
   try {
     sampleCtx.drawImage(media, 0, 0, sampleSize, sampleSize);
   } catch (e) {
-    return; // CORS or tainted canvas
+    return;
   }
 
-  // Sample the center 60% where the timer text sits
   const margin = Math.floor(sampleSize * 0.2);
   const regionSize = sampleSize - margin * 2;
   let data;
@@ -573,15 +639,13 @@ function sampleMediaLuminance() {
     return;
   }
 
-  // Compute average perceived luminance (ITU-R BT.709)
   let totalLum = 0;
   const pixelCount = data.length / 4;
   for (let i = 0; i < data.length; i += 4) {
     totalLum += (0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2]);
   }
-  const avgLum = totalLum / pixelCount; // 0-255
+  const avgLum = totalLum / pixelCount;
 
-  // Threshold: above 140 is "light" background
   const nowLight = avgLum > 140;
 
   if (nowLight !== isLightBg) {
@@ -598,9 +662,7 @@ function startContrastSampling() {
   isLightBg = false;
   document.getElementById('timer-screen').classList.remove('light-bg');
   document.getElementById('vignette').classList.remove('light-vignette');
-  // Sample every 500ms — fast enough for video, cheap with 64x64 canvas
   contrastInterval = setInterval(sampleMediaLuminance, 500);
-  // Also run once immediately after a short delay for first image load
   setTimeout(sampleMediaLuminance, 200);
 }
 
@@ -901,7 +963,6 @@ function hideControlsSoon() {
 function toggleFullscreen(e) {
   if (e) e.stopPropagation();
   const el = document.getElementById('timer-screen');
-  const btn = document.getElementById('btn-fullscreen');
 
   if (!document.fullscreenElement) {
     (el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen).call(el);
